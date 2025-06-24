@@ -1,167 +1,226 @@
-# 2FA Authenticator - Ứng dụng quản lý mã xác thực
+# 🔐 2FA Authenticator
 
-Ứng dụng Python với PyQt5 và Prisma để quản lý mã 2FA tương tự Google Authenticator với giao diện hiện đại và z-index cao.
+Ứng dụng xác thực 2FA hiện đại được xây dựng với PyQt5, Prisma và PostgreSQL. Hỗ trợ cả môi trường phát triển (LOCAL) và triển khai (PRODUCTION).
 
-## Tính năng
+## ✨ Tính năng
 
-- ✅ Giao diện PyQt5 hiện đại với z-index cao (luôn hiển thị trên cùng)
-- ✅ Thêm tài khoản 2FA mới với tên, khóa bí mật và loại khóa
-- ✅ Hiển thị danh sách tài khoản với mã TOTP 6 số
-- ✅ Đếm ngược thời gian còn lại cho mã hiện tại (cập nhật real-time)
-- ✅ Tìm kiếm tài khoản theo tên
-- ✅ Copy mã 6 số vào clipboard
-- ✅ Copy khóa bí mật vào clipboard
-- ✅ Xóa tài khoản
-- ✅ Lưu trữ dữ liệu với PostgreSQL và Prisma
-- ✅ Thread riêng biệt để cập nhật mã và thời gian
-- ✅ Cấu hình database qua file .env
+- 🔐 **TOTP Authentication**: Hỗ trợ Google Authenticator, Authy
+- 📱 **Modern UI**: Giao diện PyQt5 đẹp mắt và responsive
+- 🔍 **Search & Filter**: Tìm kiếm tài khoản nhanh chóng
+- 📋 **Copy to Clipboard**: Sao chép mã 2FA một cách dễ dàng
+- ⚡ **Real-time Updates**: Cập nhật mã 2FA theo thời gian thực
+- 🗄️ **Database Storage**: Lưu trữ an toàn với Prisma + PostgreSQL
+- 🌍 **Multi-environment**: Hỗ trợ LOCAL và PRODUCTION
+- 🎯 **Context Menu**: Menu chuột phải cho các thao tác
+- 🔧 **Edit Accounts**: Chỉnh sửa thông tin tài khoản
+- 📦 **System Tray**: Minimize vào system tray
+- 🔑 **Secret Key Management**: Quản lý và chỉnh sửa secret key
+- ⚙️ **Smart Config**: Tự động sử dụng config mặc định khi không có .env
 
-## Cài đặt
+## 🚀 Cài đặt
 
-1. Cài đặt Python 3.8+ nếu chưa có
-2. Cài đặt các thư viện cần thiết:
+### 1. Clone repository
+```bash
+git clone <repository-url>
+cd 2FAAuth-App
+```
 
+### 2. Cài đặt dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Thiết lập môi trường:
+### 3. Thiết lập môi trường
 
+#### Tự động (Khuyến nghị)
 ```bash
-# Tạo file .env từ env_example.txt
+# Ứng dụng sẽ tự động sử dụng config mặc định (PRODUCTION)
+python setup_prisma.py
+```
+
+#### Môi trường LOCAL (Phát triển)
+```bash
+# Tạo file .env
 python setup_env.py
 
-# Tạo database và bảng
-python create_database.py
+# Chỉnh sửa file .env
+DEPLOY=LOCAL
+DATABASE_URL="file:./dev.db"
 
 # Thiết lập Prisma
 python setup_prisma.py
-
-# Kiểm tra kết nối
-python test_connection.py
 ```
 
-## Chạy ứng dụng
+#### Môi trường PRODUCTION (Triển khai)
+```bash
+# Tạo file .env
+python setup_env.py
 
+# Chỉnh sửa file .env
+DEPLOY=PRODUCTION
+DATABASE_URL="postgresql://username:password@host:port/database"
+
+# Thiết lập Prisma
+python setup_prisma.py
+```
+
+### 4. Kiểm tra trạng thái
+```bash
+python check_app.py
+```
+
+### 5. Chạy ứng dụng
 ```bash
 python main.py
 ```
 
-## Cấu hình .env
+## 🌍 Hệ thống Môi trường
 
-Tạo file `.env` với các thông tin sau:
+### Tự động (Không có .env)
+- Sử dụng cấu hình mặc định từ `config.py`
+- Mode: PRODUCTION
+- Database: PostgreSQL remote
+- Phù hợp cho triển khai nhanh
 
-```env
-DATABASE_URL="postgresql://username:password@host:port/database_name"
-DB_HOST=your_host
-DB_PORT=5432
-DB_NAME=your_database_name
-DB_USER=your_username
-DB_PASSWORD=your_password
-```
+### LOCAL Mode
+- Sử dụng Prisma client đã generate
+- Database SQLite local
+- Phù hợp cho phát triển và testing
 
-## Cách sử dụng
+### PRODUCTION Mode
+- Kết nối trực tiếp đến DATABASE_URL
+- Database PostgreSQL remote
+- Phù hợp cho triển khai production
 
-### Thêm tài khoản mới
-
-1. Nhập tên tài khoản (ví dụ: "Gmail", "Facebook", "GitHub")
-2. Nhập khóa bí mật (secret key) từ dịch vụ
-3. Chọn loại khóa (TOTP hoặc HOTP)
-4. Nhấn "➕ Thêm tài khoản"
-
-### Sử dụng mã 2FA
-
-- Mã 6 số sẽ tự động cập nhật mỗi 30 giây
-- Nhấn "📋 Copy mã" để copy mã hiện tại vào clipboard
-- Nhấn "🔑 Copy khóa" để copy khóa bí mật vào clipboard
-- Nhấn "🗑️ Xóa" để xóa tài khoản
-
-### Tìm kiếm
-
-- Nhập tên tài khoản vào ô tìm kiếm để lọc danh sách
-
-## Cấu trúc dự án
+## 📁 Cấu trúc Project
 
 ```
 2FAAuth App/
-├── models/
-│   └── twofa_model.py      # Model quản lý dữ liệu với Prisma
-├── controllers/
-│   └── twofa_controller.py # Controller xử lý logic
-├── views/
-│   └── main_view.py        # Giao diện PyQt5 hiện đại
-├── prisma/
-│   └── schema.prisma       # Schema database
-├── main.py                 # File khởi chạy
-├── config.py              # Cấu hình database từ .env
-├── create_database.py     # Script tạo database
-├── setup_env.py           # Script tạo file .env
-├── setup_prisma.py        # Script thiết lập Prisma
-├── test_connection.py     # Script kiểm tra kết nối
-├── env_example.txt        # Mẫu file .env
-├── requirements.txt        # Thư viện cần thiết
-└── README.md              # Hướng dẫn sử dụng
+├── models/              # Data models
+│   └── twofa_model.py   # Database operations
+├── controllers/         # Business logic
+│   └── twofa_controller.py
+├── views/              # UI components
+│   └── main_view.py    # Main application window
+├── prisma/             # Database schema
+│   └── schema.prisma
+├── main.py             # Application entry point
+├── config.py           # Default configuration
+├── setup_env.py        # Environment setup
+├── setup_prisma.py     # Prisma setup
+├── check_app.py        # Status checker
+└── requirements.txt    # Dependencies
 ```
 
-## Tính năng giao diện
+## 🔧 Cấu hình
 
-- **Z-index cao**: Cửa sổ luôn hiển thị trên cùng
-- **Giao diện hiện đại**: Thiết kế Material Design với màu sắc và hiệu ứng
-- **Responsive**: Tự động điều chỉnh kích thước
-- **Splitter layout**: Chia màn hình thành 2 panel
-- **Real-time updates**: Cập nhật mã và thời gian mỗi giây
-- **Thread-safe**: Sử dụng QThread để cập nhật không block UI
+### File .env (Tùy chọn)
+```env
+# Deployment Mode
+DEPLOY=LOCAL  # hoặc PRODUCTION
 
-## Khắc phục lỗi
+# Database Configuration
+DATABASE_URL="file:./dev.db"  # LOCAL
+# DATABASE_URL="postgresql://..."  # PRODUCTION
 
-### Lỗi Prisma.connect()
-```bash
-# Chạy lại setup Prisma
-python setup_prisma.py
+# Application Settings
+APP_NAME="2FA Authenticator"
+APP_VERSION="1.0.0"
+
+# Security
+ENCRYPTION_KEY="your-secret-key"
 ```
 
-### Lỗi bảng không tồn tại
-```bash
-# Tạo lại database và bảng
-python create_database.py
-```
+### File config.py (Mặc định)
+- Sử dụng khi không có file `.env`
+- Cấu hình PRODUCTION mặc định
+- Có thể chỉnh sửa trực tiếp
+
+## 🎯 Sử dụng
+
+### Thêm tài khoản 2FA
+1. Click "Thêm tài khoản"
+2. Nhập tên tài khoản
+3. Nhập secret key (từ QR code hoặc manual)
+4. Click "Lưu"
+
+### Sao chép mã 2FA
+- **Copy Code**: Click chuột phải → "Sao chép mã"
+- **Copy Key**: Click chuột phải → "Sao chép secret key"
+
+### Chỉnh sửa tài khoản
+1. Click chuột phải vào tài khoản
+2. Chọn "Chỉnh sửa"
+3. Cập nhật thông tin
+4. Click "Lưu"
+
+### Tìm kiếm
+- Sử dụng ô tìm kiếm để lọc tài khoản theo tên
+
+### System Tray
+- Click nút minimize để ẩn vào system tray
+- Click chuột phải vào icon tray để mở menu
+
+## 🛠️ Troubleshooting
 
 ### Lỗi kết nối database
 ```bash
-# Kiểm tra kết nối
-python test_connection.py
+# Kiểm tra trạng thái
+python check_app.py
+
+# Thiết lập lại Prisma
+python setup_prisma.py
 ```
 
 ### Lỗi Prisma client
 ```bash
-# Tạo lại Prisma client
+# LOCAL mode: Generate client
 prisma generate
+
+# PRODUCTION mode: Kiểm tra DATABASE_URL
 ```
 
-## Lưu ý bảo mật
+### Lỗi dependencies
+```bash
+pip install -r requirements.txt
+```
 
-- Dữ liệu tài khoản được lưu trong PostgreSQL database
-- Khóa bí mật được mã hóa và chỉ hiển thị khi cần thiết
-- Nên bảo vệ thông tin database trong file .env
-- Ứng dụng có z-index cao nên cần cẩn thận khi sử dụng
+### Không có file .env
+```bash
+# Ứng dụng sẽ tự động sử dụng config mặc định
+# Để tùy chỉnh, tạo file .env:
+python setup_env.py
+```
 
-## Hỗ trợ
+## 📦 Dependencies
 
-Nếu gặp vấn đề, vui lòng kiểm tra:
-1. Python version (yêu cầu 3.8+)
-2. Các thư viện đã được cài đặt đầy đủ
-3. File .env đã được tạo và cấu hình đúng
-4. Kết nối database PostgreSQL
-5. Bảng twofa_accounts đã được tạo
-6. Prisma client đã được generate
-7. Quyền ghi file trong thư mục chạy ứng dụng
+- **PyQt5**: GUI framework
+- **Prisma**: Database ORM
+- **pyotp**: TOTP implementation
+- **pyperclip**: Clipboard operations
+- **python-dotenv**: Environment variables
 
-## Yêu cầu hệ thống
+## 🔒 Bảo mật
 
-- Python 3.8+
-- PostgreSQL database
-- PyQt5
-- Prisma
-- pyotp
-- pyperclip
-- psycopg2-binary 
+- Secret keys được mã hóa trong database
+- Không lưu trữ mã 2FA, chỉ tính toán real-time
+- Hỗ trợ encryption key tùy chỉnh
+
+## 🤝 Đóng góp
+
+1. Fork project
+2. Tạo feature branch
+3. Commit changes
+4. Push to branch
+5. Tạo Pull Request
+
+## 📄 License
+
+MIT License - xem file LICENSE để biết thêm chi tiết.
+
+## 🆘 Hỗ trợ
+
+Nếu gặp vấn đề, vui lòng:
+1. Chạy `python check_app.py` để kiểm tra
+2. Xem logs để tìm lỗi
+3. Tạo issue với thông tin chi tiết

@@ -13,7 +13,8 @@ import config
 class TwoFAModel:
     def __init__(self):
         self.db = None
-        self.deploy_mode = os.getenv('DEPLOY', 'LOCAL').upper()
+        # Sử dụng config từ config.py nếu không có .env
+        self.deploy_mode = config.DEPLOY
         self.init_database()
     
     def init_database(self):
@@ -27,11 +28,13 @@ class TwoFAModel:
             elif self.deploy_mode == 'PRODUCTION':
                 # PRODUCTION: Kết nối trực tiếp đến DATABASE_URL
                 self.db = Prisma()
-                # Đảm bảo DATABASE_URL được set
-                if not os.getenv('DATABASE_URL'):
+                # Sử dụng DATABASE_URL từ config
+                database_url = config.get_database_url()
+                if not database_url:
                     raise Exception("DATABASE_URL không được thiết lập cho môi trường PRODUCTION")
                 self.db.connect()
                 print(f"✅ Kết nối database PRODUCTION thành công")
+                print(f"🔗 Database: {database_url.split('@')[1] if '@' in database_url else database_url}")
             else:
                 raise Exception(f"DEPLOY mode không hợp lệ: {self.deploy_mode}")
                 

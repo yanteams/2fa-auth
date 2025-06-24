@@ -9,26 +9,34 @@ import sys
 import subprocess
 from pathlib import Path
 
+# Thêm thư mục gốc vào path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+import config
+
 def check_env_file():
     """Kiểm tra file .env"""
     env_file = Path('.env')
     if not env_file.exists():
-        print("❌ File .env không tồn tại!")
-        print("📝 Vui lòng tạo file .env từ env_example.txt")
+        print("⚠️ File .env không tồn tại!")
+        print("💡 Sử dụng cấu hình mặc định từ config.py (PRODUCTION mode)")
         return False
     return True
 
 def get_deploy_mode():
-    """Lấy mode deploy từ .env"""
-    try:
-        with open('.env', 'r', encoding='utf-8') as f:
-            for line in f:
-                if line.startswith('DEPLOY='):
-                    return line.split('=')[1].strip().upper()
-    except Exception as e:
-        print(f"❌ Lỗi đọc file .env: {e}")
+    """Lấy mode deploy từ .env hoặc config.py"""
+    # Thử đọc từ .env trước
+    if os.path.exists('.env'):
+        try:
+            with open('.env', 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.startswith('DEPLOY='):
+                        return line.split('=')[1].strip().upper()
+        except Exception as e:
+            print(f"❌ Lỗi đọc file .env: {e}")
     
-    return 'LOCAL'  # Default
+    # Sử dụng config mặc định
+    return config.DEPLOY
 
 def setup_local_environment():
     """Thiết lập môi trường LOCAL"""
@@ -63,15 +71,16 @@ def setup_production_environment():
     """Thiết lập môi trường PRODUCTION"""
     print("🚀 Thiết lập môi trường PRODUCTION...")
     
-    # Kiểm tra DATABASE_URL
-    database_url = os.getenv('DATABASE_URL')
+    # Kiểm tra DATABASE_URL từ config
+    database_url = config.get_database_url()
     if not database_url:
         print("❌ DATABASE_URL không được thiết lập!")
-        print("📝 Vui lòng thêm DATABASE_URL vào file .env")
+        print("📝 Vui lòng thêm DATABASE_URL vào file .env hoặc config.py")
         return False
     
     print("✅ DATABASE_URL đã được thiết lập")
-    print("🔗 Kết nối trực tiếp đến database production")
+    print(f"🔗 Database: {database_url.split('@')[1] if '@' in database_url else database_url}")
+    print("💡 Kết nối trực tiếp đến database production")
     
     try:
         # Chỉ push schema, không generate client
@@ -98,12 +107,15 @@ def main():
     print("=" * 50)
     
     # Kiểm tra file .env
-    if not check_env_file():
-        return False
+    has_env_file = check_env_file()
     
     # Lấy mode deploy
     deploy_mode = get_deploy_mode()
     print(f"🌍 Mode deploy: {deploy_mode}")
+    
+    if not has_env_file:
+        print("📝 Sử dụng cấu hình mặc định từ config.py")
+        print("💡 Để tùy chỉnh, tạo file .env từ env_example.txt")
     
     # Thiết lập theo mode
     if deploy_mode == 'LOCAL':

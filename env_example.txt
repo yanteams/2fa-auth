@@ -1,4 +1,25 @@
-DATABASE_URL="postgresql://yancoder_auth:Khoa@@2019@148.135.81.200:5432/yancoder_auth"
+# 2FA Authenticator Environment Configuration
+# Copy this file to .env and update the values
+
+# Deployment Mode (LOCAL or PRODUCTION)
+# LOCAL: Sử dụng Prisma client đã generate
+# PRODUCTION: Kết nối trực tiếp đến DATABASE_URL
+DEPLOY=LOCAL
+
+# Database Configuration
+# For LOCAL development (SQLite)
+DATABASE_URL="file:./dev.db"
+
+# For PRODUCTION (PostgreSQL example)
+# DATABASE_URL="postgresql://username:password@localhost:5432/twofa_db"
+
+# Application Settings
+APP_NAME="2FA Authenticator"
+APP_VERSION="1.0.0"
+
+# Security Settings
+ENCRYPTION_KEY="your-secret-encryption-key-here"
+
 DB_HOST=148.135.81.200
 DB_PORT=5432
 DB_NAME=yancoder_auth
