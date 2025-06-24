@@ -90,6 +90,16 @@ class TwoFAController:
         if not data.get("name", "").strip():
             return False, "Tên tài khoản không được để trống"
         
+        # Kiểm tra secret key nếu có cập nhật
+        if "secret_key" in data and data["secret_key"].strip():
+            try:
+                import pyotp
+                # Kiểm tra secret key có hợp lệ không
+                totp = pyotp.TOTP(data["secret_key"].strip())
+                totp.now()  # Test tạo mã
+            except Exception as e:
+                return False, f"Secret key không hợp lệ: {str(e)}"
+        
         success = self.model.update_account(account_id, data)
         if success:
             return True, "Cập nhật tài khoản thành công"

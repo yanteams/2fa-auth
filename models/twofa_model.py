@@ -12,13 +12,39 @@ import config
 
 class TwoFAModel:
     def __init__(self):
-        self.db = Prisma()
-        # Kết nối Prisma (sẽ tự động sử dụng DATABASE_URL từ .env)
-        self.db.connect()
+        self.db = None
+        self.deploy_mode = os.getenv('DEPLOY', 'LOCAL').upper()
+        self.init_database()
+    
+    def init_database(self):
+        """Khởi tạo database theo môi trường"""
+        try:
+            if self.deploy_mode == 'LOCAL':
+                # LOCAL: Sử dụng Prisma client đã generate
+                self.db = Prisma()
+                self.db.connect()
+                print(f"✅ Kết nối database LOCAL thành công")
+            elif self.deploy_mode == 'PRODUCTION':
+                # PRODUCTION: Kết nối trực tiếp đến DATABASE_URL
+                self.db = Prisma()
+                # Đảm bảo DATABASE_URL được set
+                if not os.getenv('DATABASE_URL'):
+                    raise Exception("DATABASE_URL không được thiết lập cho môi trường PRODUCTION")
+                self.db.connect()
+                print(f"✅ Kết nối database PRODUCTION thành công")
+            else:
+                raise Exception(f"DEPLOY mode không hợp lệ: {self.deploy_mode}")
+                
+        except Exception as e:
+            print(f"❌ Lỗi kết nối database: {e}")
+            raise e
     
     def __del__(self):
-        if hasattr(self, 'db'):
-            self.db.disconnect()
+        if hasattr(self, 'db') and self.db:
+            try:
+                self.db.disconnect()
+            except:
+                pass
     
     def add_account(self, name: str, secret_key: str, key_type: str = "TOTP") -> bool:
         """Thêm tài khoản mới"""
@@ -114,6 +140,10 @@ class TwoFAModel:
                 update_data["name"] = data["name"].strip()
             if "key_type" in data:
                 update_data["key_type"] = data["key_type"]
+            if "secret_key" in data and data["secret_key"].strip():
+                # Loại bỏ khoảng trắng và ký tự đặc biệt từ secret key
+                cleaned_key = data["secret_key"].replace(" ", "").replace("-", "").replace(":", "")
+                update_data["secret_key"] = cleaned_key
             
             if update_data:
                 self.db.twofaaccount.update(

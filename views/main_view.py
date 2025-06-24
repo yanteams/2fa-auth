@@ -5,7 +5,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QComboBox, QTableWidget, QTableWidgetItem, 
                              QHeaderView, QMessageBox, QFrame, QScrollArea,
                              QGridLayout, QCheckBox, QSplitter, QTextEdit,
-                             QToolButton, QMenu, QAction, QDialog, QFormLayout)
+                             QToolButton, QMenu, QAction, QDialog, QFormLayout,
+                             QSystemTrayIcon)
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QPropertyAnimation, QEasingCurve, QMutex
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon, QPixmap
 import time
@@ -221,7 +222,7 @@ class EditAccountDialog(QDialog):
         
     def init_ui(self):
         self.setWindowTitle("✏️ Chỉnh sửa tài khoản")
-        self.setFixedSize(400, 300)
+        self.setFixedSize(888, 350)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
         
         layout = QVBoxLayout(self)
@@ -249,6 +250,18 @@ class EditAccountDialog(QDialog):
         if self.account_data:
             self.name_input.setText(self.account_data.get("name", ""))
         form_layout.addRow("📱 Tên tài khoản:", self.name_input)
+        
+        # Secret key
+        self.secret_input = ModernLineEdit()
+        self.secret_input.setEchoMode(QLineEdit.Password)
+        if self.account_data:
+            self.secret_input.setText(self.account_data.get("secret_key", ""))
+        form_layout.addRow("🔐 Secret key:", self.secret_input)
+        
+        # Checkbox hiển thị secret key
+        self.show_secret_cb = QCheckBox("Hiển thị secret key")
+        self.show_secret_cb.toggled.connect(self.toggle_secret_visibility)
+        form_layout.addRow("", self.show_secret_cb)
         
         # Loại khóa
         self.key_type_combo = ModernComboBox()
@@ -295,10 +308,18 @@ class EditAccountDialog(QDialog):
         
         layout.addLayout(button_layout)
         
+    def toggle_secret_visibility(self, checked):
+        """Chuyển đổi hiển thị/ẩn secret key"""
+        if checked:
+            self.secret_input.setEchoMode(QLineEdit.Normal)
+        else:
+            self.secret_input.setEchoMode(QLineEdit.Password)
+        
     def get_data(self):
         """Lấy dữ liệu từ form"""
         return {
             "name": self.name_input.text().strip(),
+            "secret_key": self.secret_input.text().strip(),
             "key_type": self.key_type_combo.currentText(),
             "note": self.note_input.toPlainText().strip()
         }
@@ -316,8 +337,81 @@ class TwoFAView(QMainWindow):
         self.cached_accounts = []
         self.is_updating = False
         
+        # Khởi tạo SystemTrayIcon
+        self.tray_icon = None
+        self.setup_system_tray()
+        
         self.init_ui()
         self.start_update_thread()
+    
+    def setup_system_tray(self):
+        """Thiết lập SystemTrayIcon"""
+        if QSystemTrayIcon.isSystemTrayAvailable():
+            self.tray_icon = QSystemTrayIcon(self)
+            
+            # Tạo icon cho tray
+            icon = QIcon()
+            # Sử dụng emoji làm icon (có thể thay bằng file icon thực tế)
+            pixmap = QPixmap(32, 32)
+            pixmap.fill(QColor("#4CAF50"))
+            icon.addPixmap(pixmap)
+            
+            self.tray_icon.setIcon(icon)
+            self.tray_icon.setToolTip("2FA Authenticator")
+            
+            # Tạo context menu cho tray icon
+            tray_menu = QMenu()
+            
+            show_action = QAction("🔍 Hiển thị ứng dụng", self)
+            show_action.triggered.connect(self.show_main_window)
+            tray_menu.addAction(show_action)
+            
+            tray_menu.addSeparator()
+            
+            exit_action = QAction("❌ Thoát", self)
+            exit_action.triggered.connect(self.quit_application)
+            tray_menu.addAction(exit_action)
+            
+            self.tray_icon.setContextMenu(tray_menu)
+            
+            # Kết nối signal click
+            self.tray_icon.activated.connect(self.tray_icon_activated)
+            
+            # Hiển thị tray icon
+            self.tray_icon.show()
+    
+    def tray_icon_activated(self, reason):
+        """Xử lý khi click vào tray icon"""
+        if reason == QSystemTrayIcon.DoubleClick:
+            self.show_main_window()
+    
+    def show_main_window(self):
+        """Hiển thị cửa sổ chính"""
+        self.show()
+        self.raise_()
+        self.activateWindow()
+    
+    def quit_application(self):
+        """Thoát ứng dụng"""
+        if self.tray_icon:
+            self.tray_icon.hide()
+        QApplication.quit()
+    
+    def changeEvent(self, event):
+        """Xử lý khi thay đổi trạng thái cửa sổ"""
+        if event.type() == event.WindowStateChange:
+            if self.isMinimized():
+                self.hide()
+                if self.tray_icon:
+                    self.tray_icon.showMessage(
+                        "2FA Authenticator",
+                        "Ứng dụng đã được thu nhỏ vào system tray. Double-click để mở lại.",
+                        QSystemTrayIcon.Information,
+                        3000
+                    )
+                event.ignore()
+                return
+        super().changeEvent(event)
     
     def init_ui(self):
         """Khởi tạo giao diện"""
@@ -1008,6 +1102,18 @@ class TwoFAView(QMainWindow):
     def closeEvent(self, event):
         """Xử lý khi đóng ứng dụng với cleanup đầy đủ"""
         try:
+            # Nếu có tray icon, chỉ ẩn cửa sổ thay vì đóng
+            if self.tray_icon and self.tray_icon.isVisible():
+                self.hide()
+                self.tray_icon.showMessage(
+                    "2FA Authenticator",
+                    "Ứng dụng vẫn đang chạy trong system tray. Double-click để mở lại.",
+                    QSystemTrayIcon.Information,
+                    3000
+                )
+                event.ignore()
+                return
+            
             # Dừng update worker
             if hasattr(self, 'update_worker'):
                 self.update_worker.stop()
@@ -1020,6 +1126,10 @@ class TwoFAView(QMainWindow):
             # Đợi tất cả threads kết thúc
             if hasattr(self, 'update_worker'):
                 self.update_worker.wait()
+            
+            # Ẩn tray icon nếu có
+            if self.tray_icon:
+                self.tray_icon.hide()
             
             print("Đã đóng ứng dụng an toàn")
             event.accept()
