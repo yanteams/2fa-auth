@@ -688,7 +688,7 @@ class TwoFAView(QMainWindow):
         footer_layout = QHBoxLayout(footer_frame)
         footer_layout.setContentsMargins(15, 10, 15, 10)
         
-        info_label = QLabel("💡 Mẹo: Click vào nút 'Copy Mã' để sao chép mã 6 số vào clipboard")
+        info_label = QLabel("💡 Mẹo: Click chuột phải vào hàng để mở menu thao tác")
         info_label.setStyleSheet("""
             QLabel {
                 color: #6c757d;
@@ -714,6 +714,10 @@ class TwoFAView(QMainWindow):
         
         # Cập nhật danh sách ban đầu
         self.update_accounts_table()
+        
+        # Thiết lập context menu cho table
+        self.accounts_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.accounts_table.customContextMenuRequested.connect(self.show_context_menu)
         
         return panel
     
@@ -879,97 +883,20 @@ class TwoFAView(QMainWindow):
             date_item.setForeground(QColor("#6c757d"))
             self.accounts_table.setItem(row, 4, date_item)
             
-            # Panel thao tác hiện đại với styling nâng cao
-            actions_widget = QWidget()
-            actions_widget.setStyleSheet("""
-                QWidget {
-                    background-color: transparent;
-                    border: none;
-                }
-            """)
+            # Cột thao tác - hiển thị icon menu
+            action_item = QTableWidgetItem("⚙️")
+            action_item.setFlags(action_item.flags() & ~Qt.ItemIsEditable)
+            action_item.setTextAlignment(Qt.AlignCenter)
+            action_item.setToolTip("Click chuột phải để mở menu thao tác")
             
-            actions_layout = QHBoxLayout(actions_widget)
-            actions_layout.setContentsMargins(8, 8, 8, 8)
-            actions_layout.setSpacing(6)
+            # Thiết lập màu nền cho cột thao tác
+            action_item.setBackground(QColor("#f8f9fa"))
+            action_item.setForeground(QColor("#6c757d"))
             
-            # Nút copy mã với icon
-            copy_code_btn = ModernButton("📋", "#28a745", "#218838")
-            copy_code_btn.setFixedSize(40, 40)
-            copy_code_btn.setToolTip("Sao chép mã 6 số hiện tại vào clipboard")
-            copy_code_btn.clicked.connect(
-                lambda checked, sk=account["secret_key"]: self.copy_code(sk)
-            )
-            actions_layout.addWidget(copy_code_btn)
+            # Lưu account data vào item để sử dụng trong context menu
+            action_item.setData(Qt.UserRole, account)
             
-            # Nút copy khóa với icon
-            copy_key_btn = ModernButton("🔑", "#007bff", "#0056b3")
-            copy_key_btn.setFixedSize(40, 40)
-            copy_key_btn.setToolTip("Sao chép secret key vào clipboard")
-            copy_key_btn.clicked.connect(
-                lambda checked, sk=account["secret_key"]: self.copy_key(sk)
-            )
-            actions_layout.addWidget(copy_key_btn)
-            
-            # Nút chỉnh sửa với icon
-            edit_btn = ModernButton("✏️", "#ffc107", "#e0a800")
-            edit_btn.setFixedSize(40, 40)
-            edit_btn.setToolTip("Chỉnh sửa tài khoản")
-            edit_btn.clicked.connect(
-                lambda checked, aid=account["id"]: self.edit_account(aid)
-            )
-            actions_layout.addWidget(edit_btn)
-            
-            # Nút xóa với icon
-            delete_btn = ModernButton("🗑️", "#dc3545", "#c82333")
-            delete_btn.setFixedSize(40, 40)
-            delete_btn.setToolTip("Xóa tài khoản này khỏi danh sách")
-            delete_btn.clicked.connect(
-                lambda checked, aid=account["id"]: self.delete_account(aid)
-            )
-            actions_layout.addWidget(delete_btn)
-            
-            # Nút menu thêm với icon
-            menu_btn = ActionButton("⚙️", "", "#6c757d", "#5a6268")
-            menu_btn.setFixedSize(40, 40)
-            menu_btn.setToolTip("Các tùy chọn khác")
-            
-            # Tạo menu dropdown với styling nâng cao
-            menu = QMenu()
-            menu.setStyleSheet("""
-                QMenu {
-                    background-color: white;
-                    border: 2px solid #dee2e6;
-                    border-radius: 8px;
-                    padding: 8px;
-                    font-size: 12px;
-                }
-                QMenu::item {
-                    padding: 10px 20px;
-                    border-radius: 6px;
-                    margin: 2px;
-                }
-                QMenu::item:selected {
-                    background-color: #e3f2fd;
-                    color: #1976d2;
-                    font-weight: bold;
-                }
-                QMenu::separator {
-                    height: 1px;
-                    background-color: #dee2e6;
-                    margin: 5px 0px;
-                }
-            """)
-            
-            # Thêm các action vào menu với text rõ ràng
-            export_action = QAction("📤 Xuất secret key", self)
-            export_action.triggered.connect(lambda: self.export_key(account["secret_key"]))
-            menu.addAction(export_action)
-            
-            menu_btn.setMenu(menu)
-            actions_layout.addWidget(menu_btn)
-            
-            actions_layout.addStretch()
-            self.accounts_table.setCellWidget(row, 5, actions_widget)
+            self.accounts_table.setItem(row, 5, action_item)
             
         except Exception as e:
             print(f"Lỗi khi populate row {row}: {e}")
@@ -1103,4 +1030,80 @@ class TwoFAView(QMainWindow):
     def handle_data_error(self, error_message):
         """Xử lý lỗi khi load dữ liệu"""
         print(f"Lỗi load dữ liệu: {error_message}")
-        self.is_updating = False 
+        self.is_updating = False
+    
+    def show_context_menu(self, position):
+        """Hiển thị context menu khi click chuột phải"""
+        try:
+            # Lấy item được click
+            item = self.accounts_table.itemAt(position)
+            if not item:
+                return
+            
+            # Lấy row của item
+            row = item.row()
+            if row < 0 or row >= len(self.cached_accounts):
+                return
+            
+            # Lấy account data
+            account = self.cached_accounts[row]
+            
+            # Tạo context menu
+            context_menu = QMenu(self)
+            context_menu.setStyleSheet("""
+                QMenu {
+                    background-color: white;
+                    border: 2px solid #dee2e6;
+                    border-radius: 8px;
+                    padding: 8px;
+                    font-size: 12px;
+                }
+                QMenu::item {
+                    padding: 10px 20px;
+                    border-radius: 6px;
+                    margin: 2px;
+                }
+                QMenu::item:selected {
+                    background-color: #e3f2fd;
+                    color: #1976d2;
+                    font-weight: bold;
+                }
+                QMenu::separator {
+                    height: 1px;
+                    background-color: #dee2e6;
+                    margin: 5px 0px;
+                }
+            """)
+            
+            # Thêm các action
+            copy_code_action = QAction("📋 Copy mã 6 số", self)
+            copy_code_action.triggered.connect(lambda: self.copy_code(account["secret_key"]))
+            context_menu.addAction(copy_code_action)
+            
+            copy_key_action = QAction("🔑 Copy secret key", self)
+            copy_key_action.triggered.connect(lambda: self.copy_key(account["secret_key"]))
+            context_menu.addAction(copy_key_action)
+            
+            context_menu.addSeparator()
+            
+            edit_action = QAction("✏️ Chỉnh sửa tài khoản", self)
+            edit_action.triggered.connect(lambda: self.edit_account(account["id"]))
+            context_menu.addAction(edit_action)
+            
+            context_menu.addSeparator()
+            
+            export_action = QAction("📤 Xuất secret key", self)
+            export_action.triggered.connect(lambda: self.export_key(account["secret_key"]))
+            context_menu.addAction(export_action)
+            
+            context_menu.addSeparator()
+            
+            delete_action = QAction("🗑️ Xóa tài khoản", self)
+            delete_action.triggered.connect(lambda: self.delete_account(account["id"]))
+            context_menu.addAction(delete_action)
+            
+            # Hiển thị menu tại vị trí click
+            context_menu.exec_(self.accounts_table.mapToGlobal(position))
+            
+        except Exception as e:
+            print(f"Lỗi khi hiển thị context menu: {e}") 
