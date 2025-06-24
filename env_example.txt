@@ -1,0 +1,6 @@
+DATABASE_URL="postgresql://yancoder_auth:Khoa@@2019@148.135.81.200:5432/yancoder_auth"
+DB_HOST=148.135.81.200
+DB_PORT=5432
+DB_NAME=yancoder_auth
+DB_USER=yancoder_auth
+DB_PASSWORD=Khoa@@2019 

@@ -14,6 +14,7 @@
 - ✅ Xóa tài khoản
 - ✅ Lưu trữ dữ liệu với PostgreSQL và Prisma
 - ✅ Thread riêng biệt để cập nhật mã và thời gian
+- ✅ Cấu hình database qua file .env
 
 ## Cài đặt
 
@@ -24,27 +25,39 @@
 pip install -r requirements.txt
 ```
 
-3. Cấu hình database PostgreSQL:
+3. Thiết lập môi trường:
 
 ```bash
-# Tạo file .env với thông tin database
-echo 'DATABASE_URL="postgresql://username:password@localhost:5432/database_name"' > .env
-```
+# Tạo file .env từ env_example.txt
+python setup_env.py
 
-4. Khởi tạo Prisma:
+# Tạo database và bảng
+python create_database.py
 
-```bash
-# Tạo Prisma client
-prisma generate
+# Thiết lập Prisma
+python setup_prisma.py
 
-# Chạy migration (nếu cần)
-prisma db push
+# Kiểm tra kết nối
+python test_connection.py
 ```
 
 ## Chạy ứng dụng
 
 ```bash
 python main.py
+```
+
+## Cấu hình .env
+
+Tạo file `.env` với các thông tin sau:
+
+```env
+DATABASE_URL="postgresql://username:password@host:port/database_name"
+DB_HOST=your_host
+DB_PORT=5432
+DB_NAME=your_database_name
+DB_USER=your_username
+DB_PASSWORD=your_password
 ```
 
 ## Cách sử dụng
@@ -80,7 +93,12 @@ python main.py
 ├── prisma/
 │   └── schema.prisma       # Schema database
 ├── main.py                 # File khởi chạy
-├── config.py              # Cấu hình database
+├── config.py              # Cấu hình database từ .env
+├── create_database.py     # Script tạo database
+├── setup_env.py           # Script tạo file .env
+├── setup_prisma.py        # Script thiết lập Prisma
+├── test_connection.py     # Script kiểm tra kết nối
+├── env_example.txt        # Mẫu file .env
 ├── requirements.txt        # Thư viện cần thiết
 └── README.md              # Hướng dẫn sử dụng
 ```
@@ -94,11 +112,37 @@ python main.py
 - **Real-time updates**: Cập nhật mã và thời gian mỗi giây
 - **Thread-safe**: Sử dụng QThread để cập nhật không block UI
 
+## Khắc phục lỗi
+
+### Lỗi Prisma.connect()
+```bash
+# Chạy lại setup Prisma
+python setup_prisma.py
+```
+
+### Lỗi bảng không tồn tại
+```bash
+# Tạo lại database và bảng
+python create_database.py
+```
+
+### Lỗi kết nối database
+```bash
+# Kiểm tra kết nối
+python test_connection.py
+```
+
+### Lỗi Prisma client
+```bash
+# Tạo lại Prisma client
+prisma generate
+```
+
 ## Lưu ý bảo mật
 
 - Dữ liệu tài khoản được lưu trong PostgreSQL database
 - Khóa bí mật được mã hóa và chỉ hiển thị khi cần thiết
-- Nên bảo vệ thông tin database để tránh mất thông tin
+- Nên bảo vệ thông tin database trong file .env
 - Ứng dụng có z-index cao nên cần cẩn thận khi sử dụng
 
 ## Hỗ trợ
@@ -106,9 +150,11 @@ python main.py
 Nếu gặp vấn đề, vui lòng kiểm tra:
 1. Python version (yêu cầu 3.8+)
 2. Các thư viện đã được cài đặt đầy đủ
-3. Kết nối database PostgreSQL
-4. Prisma client đã được generate
-5. Quyền ghi file trong thư mục chạy ứng dụng
+3. File .env đã được tạo và cấu hình đúng
+4. Kết nối database PostgreSQL
+5. Bảng twofa_accounts đã được tạo
+6. Prisma client đã được generate
+7. Quyền ghi file trong thư mục chạy ứng dụng
 
 ## Yêu cầu hệ thống
 
@@ -117,4 +163,5 @@ Nếu gặp vấn đề, vui lòng kiểm tra:
 - PyQt5
 - Prisma
 - pyotp
-- pyperclip 
+- pyperclip
+- psycopg2-binary 

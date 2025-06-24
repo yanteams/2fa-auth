@@ -3,7 +3,8 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                              QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                              QComboBox, QTableWidget, QTableWidgetItem, 
                              QHeaderView, QMessageBox, QFrame, QScrollArea,
-                             QGridLayout, QCheckBox, QSplitter, QTextEdit)
+                             QGridLayout, QCheckBox, QSplitter, QTextEdit,
+                             QToolButton, QMenu, QAction)
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QPropertyAnimation, QEasingCurve
 from PyQt5.QtGui import QFont, QPalette, QColor, QIcon, QPixmap
 from controllers.twofa_controller import TwoFAController
@@ -27,7 +28,7 @@ class UpdateThread(QThread):
 
 class ModernButton(QPushButton):
     """Nút hiện đại với hiệu ứng hover"""
-    def __init__(self, text, color="#4CAF50", hover_color="#45a049"):
+    def __init__(self, text, color="#4CAF50", hover_color="#45a049", icon_text=""):
         super().__init__(text)
         self.color = color
         self.hover_color = hover_color
@@ -36,16 +37,50 @@ class ModernButton(QPushButton):
                 background-color: {color};
                 border: none;
                 color: white;
-                padding: 8px 16px;
-                border-radius: 6px;
+                padding: 8px 12px;
+                border-radius: 8px;
                 font-weight: bold;
-                font-size: 12px;
+                font-size: 11px;
+                min-height: 20px;
             }}
             QPushButton:hover {{
                 background-color: {hover_color};
+                transform: translateY(-1px);
             }}
             QPushButton:pressed {{
                 background-color: #3d8b40;
+                transform: translateY(0px);
+            }}
+        """)
+
+class ActionButton(QToolButton):
+    """Nút thao tác hiện đại với menu dropdown"""
+    def __init__(self, text, icon_text, color="#4CAF50", hover_color="#45a049"):
+        super().__init__()
+        self.setText(text)
+        self.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        self.setPopupMode(QToolButton.InstantPopup)
+        self.setStyleSheet(f"""
+            QToolButton {{
+                background-color: {color};
+                border: none;
+                color: white;
+                padding: 6px 10px;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 10px;
+                min-height: 18px;
+                min-width: 60px;
+            }}
+            QToolButton:hover {{
+                background-color: {hover_color};
+            }}
+            QToolButton:pressed {{
+                background-color: #3d8b40;
+            }}
+            QToolButton::menu-button {{
+                border: none;
+                width: 12px;
             }}
         """)
 
@@ -93,6 +128,20 @@ class ModernComboBox(QComboBox):
                 margin-right: 10px;
             }
         """)
+
+class AutoCloseMessageBox(QMessageBox):
+    """MessageBox tự động đóng sau 500ms"""
+    def __init__(self, title, message, icon=QMessageBox.Information):
+        super().__init__(icon, title, message)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        
+        # Timer để tự động đóng
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.accept)
+        self.timer.start(1500)  # 500ms
+        
+        # Hiển thị message box
+        self.show()
 
 class TwoFAView(QMainWindow):
     def __init__(self):
@@ -321,21 +370,29 @@ class TwoFAView(QMainWindow):
                 border-radius: 8px;
                 background-color: white;
                 gridline-color: #f0f0f0;
+                alternate-background-color: #fafafa;
             }
             QTableWidget::item {
-                padding: 10px;
+                padding: 12px;
                 border-bottom: 1px solid #f0f0f0;
             }
             QTableWidget::item:selected {
                 background-color: #e3f2fd;
             }
-            QHeaderView::section {
+            QTableWidget::item:hover {
                 background-color: #f5f5f5;
-                padding: 10px;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                padding: 12px;
                 border: none;
                 border-bottom: 2px solid #e0e0e0;
                 font-weight: bold;
                 color: #333;
+                font-size: 13px;
+            }
+            QHeaderView::section:hover {
+                background-color: #e9ecef;
             }
         """)
         
@@ -357,11 +414,14 @@ class TwoFAView(QMainWindow):
         self.accounts_table.setColumnWidth(1, 120)  # Mã
         self.accounts_table.setColumnWidth(2, 100)  # Thời gian
         self.accounts_table.setColumnWidth(3, 80)   # Loại
-        self.accounts_table.setColumnWidth(4, 200)  # Thao tác
+        self.accounts_table.setColumnWidth(4, 280)  # Thao tác
         self.accounts_table.setColumnWidth(5, 0)    # Ẩn
         
         # Ẩn header dọc
         self.accounts_table.verticalHeader().setVisible(False)
+        
+        # Bật alternating row colors
+        self.accounts_table.setAlternatingRowColors(True)
         
         layout.addWidget(self.accounts_table)
         
@@ -386,12 +446,12 @@ class TwoFAView(QMainWindow):
         success, message = self.controller.add_new_account(name, secret, key_type)
         
         if success:
-            QMessageBox.information(self, "Thành công", message)
+            AutoCloseMessageBox("Thành công", message)
             self.name_input.clear()
             self.secret_input.clear()
             self.update_accounts_table()
         else:
-            QMessageBox.critical(self, "Lỗi", message)
+            AutoCloseMessageBox("Lỗi", message, QMessageBox.Critical)
     
     def on_search(self):
         """Xử lý tìm kiếm"""
@@ -422,14 +482,23 @@ class TwoFAView(QMainWindow):
             code_item = QTableWidgetItem(account_with_code["current_code"])
             code_item.setFlags(code_item.flags() & ~Qt.ItemIsEditable)
             code_item.setTextAlignment(Qt.AlignCenter)
-            code_item.setStyleSheet("font-weight: bold; font-size: 16px; color: #4CAF50;")
+            # Sử dụng font và màu sắc thay vì setStyleSheet
+            font = QFont()
+            font.setBold(True)
+            font.setPointSize(14)
+            code_item.setFont(font)
+            code_item.setForeground(QColor("#4CAF50"))
             self.accounts_table.setItem(row, 1, code_item)
             
             # Thời gian còn lại
             time_item = QTableWidgetItem(f"{account_with_code['remaining_time']}s")
             time_item.setFlags(time_item.flags() & ~Qt.ItemIsEditable)
             time_item.setTextAlignment(Qt.AlignCenter)
-            time_item.setStyleSheet("font-weight: bold; color: #FF9800;")
+            # Sử dụng font và màu sắc thay vì setStyleSheet
+            time_font = QFont()
+            time_font.setBold(True)
+            time_item.setFont(time_font)
+            time_item.setForeground(QColor("#FF9800"))
             self.accounts_table.setItem(row, 2, time_item)
             
             # Loại khóa
@@ -438,35 +507,76 @@ class TwoFAView(QMainWindow):
             type_item.setTextAlignment(Qt.AlignCenter)
             self.accounts_table.setItem(row, 3, type_item)
             
-            # Nút thao tác
+            # Panel thao tác hiện đại
             actions_widget = QWidget()
-            actions_layout = QHBoxLayout(actions_widget)
-            actions_layout.setContentsMargins(5, 5, 5, 5)
-            actions_layout.setSpacing(5)
+            actions_widget.setStyleSheet("""
+                QWidget {
+                    background-color: transparent;
+                    border: none;
+                }
+            """)
             
-            # Nút copy mã
+            actions_layout = QHBoxLayout(actions_widget)
+            actions_layout.setContentsMargins(8, 4, 8, 4)
+            actions_layout.setSpacing(8)
+            
+            # Nút copy mã với icon
             copy_code_btn = ModernButton("📋 Copy mã", "#4CAF50", "#45a049")
-            copy_code_btn.setFixedSize(80, 30)
+            copy_code_btn.setFixedSize(75, 28)
             copy_code_btn.clicked.connect(
                 lambda checked, sk=account["secret_key"]: self.copy_code(sk)
             )
             actions_layout.addWidget(copy_code_btn)
             
-            # Nút copy khóa
+            # Nút copy khóa với icon
             copy_key_btn = ModernButton("🔑 Copy khóa", "#2196F3", "#1976D2")
-            copy_key_btn.setFixedSize(80, 30)
+            copy_key_btn.setFixedSize(75, 28)
             copy_key_btn.clicked.connect(
                 lambda checked, sk=account["secret_key"]: self.copy_key(sk)
             )
             actions_layout.addWidget(copy_key_btn)
             
-            # Nút xóa
+            # Nút xóa với icon
             delete_btn = ModernButton("🗑️ Xóa", "#f44336", "#d32f2f")
-            delete_btn.setFixedSize(60, 30)
+            delete_btn.setFixedSize(55, 28)
             delete_btn.clicked.connect(
                 lambda checked, aid=account["id"]: self.delete_account(aid)
             )
             actions_layout.addWidget(delete_btn)
+            
+            # Nút menu thêm (có thể mở rộng sau)
+            menu_btn = ActionButton("⋮", "", "#6c757d", "#5a6268")
+            menu_btn.setFixedSize(35, 28)
+            
+            # Tạo menu dropdown
+            menu = QMenu()
+            menu.setStyleSheet("""
+                QMenu {
+                    background-color: white;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 6px;
+                    padding: 5px;
+                }
+                QMenu::item {
+                    padding: 8px 15px;
+                    border-radius: 4px;
+                }
+                QMenu::item:selected {
+                    background-color: #e3f2fd;
+                }
+            """)
+            
+            # Thêm các action vào menu
+            edit_action = QAction("✏️ Chỉnh sửa", self)
+            edit_action.triggered.connect(lambda: self.edit_account(account["id"]))
+            menu.addAction(edit_action)
+            
+            export_action = QAction("📤 Xuất khóa", self)
+            export_action.triggered.connect(lambda: self.export_key(account["secret_key"]))
+            menu.addAction(export_action)
+            
+            menu_btn.setMenu(menu)
+            actions_layout.addWidget(menu_btn)
             
             actions_layout.addStretch()
             self.accounts_table.setCellWidget(row, 4, actions_widget)
@@ -474,16 +584,16 @@ class TwoFAView(QMainWindow):
     def copy_code(self, secret_key):
         """Copy mã TOTP"""
         if self.controller.copy_totp_code(secret_key):
-            QMessageBox.information(self, "Thành công", "Đã copy mã vào clipboard")
+            AutoCloseMessageBox("Thành công", "Đã copy mã vào clipboard")
         else:
-            QMessageBox.critical(self, "Lỗi", "Không thể copy mã")
+            AutoCloseMessageBox("Lỗi", "Không thể copy mã", QMessageBox.Critical)
     
     def copy_key(self, secret_key):
         """Copy secret key"""
         if self.controller.copy_secret_key(secret_key):
-            QMessageBox.information(self, "Thành công", "Đã copy khóa vào clipboard")
+            AutoCloseMessageBox("Thành công", "Đã copy khóa vào clipboard")
         else:
-            QMessageBox.critical(self, "Lỗi", "Không thể copy khóa")
+            AutoCloseMessageBox("Lỗi", "Không thể copy khóa", QMessageBox.Critical)
     
     def delete_account(self, account_id):
         """Xóa tài khoản"""
@@ -497,10 +607,18 @@ class TwoFAView(QMainWindow):
         if reply == QMessageBox.Yes:
             success, message = self.controller.delete_account(account_id)
             if success:
-                QMessageBox.information(self, "Thành công", message)
+                AutoCloseMessageBox("Thành công", message)
                 self.update_accounts_table()
             else:
-                QMessageBox.critical(self, "Lỗi", message)
+                AutoCloseMessageBox("Lỗi", message, QMessageBox.Critical)
+    
+    def edit_account(self, account_id):
+        """Chỉnh sửa tài khoản (placeholder)"""
+        AutoCloseMessageBox("Thông báo", "Tính năng chỉnh sửa sẽ được phát triển sau", QMessageBox.Information)
+    
+    def export_key(self, secret_key):
+        """Xuất khóa (placeholder)"""
+        AutoCloseMessageBox("Thông báo", "Tính năng xuất khóa sẽ được phát triển sau", QMessageBox.Information)
     
     def start_update_thread(self):
         """Bắt đầu thread cập nhật"""

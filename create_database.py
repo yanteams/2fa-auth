@@ -36,7 +36,14 @@ def create_database():
         conn.autocommit = True
         cursor = conn.cursor()
         
-        # Tạo bảng twofa_accounts
+        # Xóa bảng cũ nếu tồn tại (để tạo lại với cấu trúc mới)
+        try:
+            cursor.execute("DROP TABLE IF EXISTS twofa_accounts CASCADE;")
+            print("🗑️ Đã xóa bảng cũ (nếu có)")
+        except Exception as e:
+            print(f"ℹ️ Không có bảng cũ để xóa: {e}")
+        
+        # Tạo bảng twofa_accounts với cấu trúc đúng cho Prisma
         create_table_sql = """
         CREATE TABLE IF NOT EXISTS twofa_accounts (
             id SERIAL PRIMARY KEY,
@@ -49,7 +56,7 @@ def create_database():
         """
         
         cursor.execute(create_table_sql)
-        print("✅ Đã tạo bảng 'twofa_accounts'")
+        print("✅ Đã tạo bảng 'twofa_accounts' với cấu trúc mới")
         
         # Tạo index cho tìm kiếm
         try:
@@ -81,10 +88,23 @@ def create_database():
         count = cursor.fetchone()[0]
         print(f"📊 Số lượng tài khoản trong bảng: {count}")
         
+        # Hiển thị cấu trúc bảng
+        cursor.execute("""
+            SELECT column_name, data_type, is_nullable, column_default 
+            FROM information_schema.columns 
+            WHERE table_name = 'twofa_accounts' 
+            ORDER BY ordinal_position;
+        """)
+        columns = cursor.fetchall()
+        print("\n📋 Cấu trúc bảng twofa_accounts:")
+        for col in columns:
+            print(f"  - {col[0]}: {col[1]} (nullable: {col[2]}, default: {col[3]})")
+        
         cursor.close()
         conn.close()
         
-        print("🎉 Khởi tạo database thành công!")
+        print("\n🎉 Khởi tạo database thành công!")
+        print("💡 Bây giờ bạn có thể chạy: prisma generate")
         
     except Exception as e:
         print(f"❌ Lỗi khi khởi tạo database: {e}")

@@ -7,6 +7,7 @@ import config
 class TwoFAModel:
     def __init__(self):
         self.db = Prisma()
+        # Kết nối Prisma (sẽ tự động sử dụng DATABASE_URL từ .env)
         self.db.connect()
     
     def __del__(self):
@@ -25,8 +26,8 @@ class TwoFAModel:
             
             self.db.twofaaccount.create({
                 "name": name.strip(),
-                "secretKey": cleaned_key,
-                "keyType": key_type
+                "secret_key": cleaned_key,
+                "key_type": key_type
             })
             return True
         except Exception as e:
@@ -45,7 +46,7 @@ class TwoFAModel:
     def get_accounts(self) -> List[Dict]:
         """Lấy tất cả tài khoản"""
         try:
-            accounts = self.db.twofaaccount.find_many(order={"createdAt": "desc"})
+            accounts = self.db.twofaaccount.find_many(order={"created_at": "desc"})
             return [self._convert_to_dict(account) for account in accounts]
         except Exception as e:
             print(f"Lỗi khi lấy danh sách tài khoản: {e}")
@@ -57,7 +58,7 @@ class TwoFAModel:
             query = query.lower()
             accounts = self.db.twofaaccount.find_many(
                 where={"name": {"contains": query, "mode": "insensitive"}},
-                order={"createdAt": "desc"}
+                order={"created_at": "desc"}
             )
             return [self._convert_to_dict(account) for account in accounts]
         except Exception as e:
@@ -82,8 +83,8 @@ class TwoFAModel:
         return {
             "id": account.id,
             "name": account.name,
-            "secret_key": account.secretKey,
-            "key_type": account.keyType,
-            "created_at": account.createdAt.isoformat() if account.createdAt else None,
-            "updated_at": account.updatedAt.isoformat() if account.updatedAt else None
+            "secret_key": account.secret_key,
+            "key_type": account.key_type,
+            "created_at": account.created_at.isoformat() if account.created_at else None,
+            "updated_at": account.updated_at.isoformat() if account.updated_at else None
         } 

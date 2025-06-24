@@ -15,10 +15,10 @@ datasource db {
 model TwoFAAccount {
   id         Int      @id @default(autoincrement())
   name       String
-  secretKey  String
-  keyType    String   @default("TOTP")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  secret_key String   @map("secret_key")
+  key_type   String   @default("TOTP") @map("key_type")
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
 
   @@map("twofa_accounts")
 } 
