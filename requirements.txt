@@ -1,0 +1,6 @@
+PyQt5==5.15.9
+prisma==0.11.0
+pyotp==2.9.0
+pyperclip==1.8.2
+python-dotenv==1.0.0
+psycopg2-binary==2.9.7 
