@@ -1,7 +1,13 @@
+import sys
+import os
 from prisma import Prisma
 from typing import List, Dict, Optional
 import pyotp
 from datetime import datetime
+
+# Thêm thư mục gốc vào path để import các module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import config
 
 class TwoFAModel:
@@ -87,4 +93,35 @@ class TwoFAModel:
             "key_type": account.key_type,
             "created_at": account.created_at.isoformat() if account.created_at else None,
             "updated_at": account.updated_at.isoformat() if account.updated_at else None
-        } 
+        }
+    
+    def get_account(self, account_id: int) -> Optional[Dict]:
+        """Lấy thông tin tài khoản theo ID"""
+        try:
+            account = self.db.twofaaccount.find_unique(where={"id": account_id})
+            if account:
+                return self._convert_to_dict(account)
+            return None
+        except Exception as e:
+            print(f"Lỗi khi lấy thông tin tài khoản: {e}")
+            return None
+    
+    def update_account(self, account_id: int, data: Dict) -> bool:
+        """Cập nhật thông tin tài khoản"""
+        try:
+            update_data = {}
+            if "name" in data:
+                update_data["name"] = data["name"].strip()
+            if "key_type" in data:
+                update_data["key_type"] = data["key_type"]
+            
+            if update_data:
+                self.db.twofaaccount.update(
+                    where={"id": account_id},
+                    data=update_data
+                )
+                return True
+            return False
+        except Exception as e:
+            print(f"Lỗi khi cập nhật tài khoản: {e}")
+            return False 

@@ -1,6 +1,12 @@
-from models.twofa_model import TwoFAModel
+import sys
+import os
 from typing import List, Dict, Tuple
 import pyperclip
+
+# Thêm thư mục gốc vào path để import các module
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from models.twofa_model import TwoFAModel
 
 class TwoFAController:
     def __init__(self):
@@ -73,4 +79,19 @@ class TwoFAController:
     
     def get_remaining_time(self) -> int:
         """Lấy thời gian còn lại"""
-        return self.model.get_remaining_time() 
+        return self.model.get_remaining_time()
+    
+    def get_account(self, account_id: int) -> Dict:
+        """Lấy thông tin tài khoản theo ID"""
+        return self.model.get_account(account_id)
+    
+    def update_account(self, account_id: int, data: Dict) -> Tuple[bool, str]:
+        """Cập nhật thông tin tài khoản"""
+        if not data.get("name", "").strip():
+            return False, "Tên tài khoản không được để trống"
+        
+        success = self.model.update_account(account_id, data)
+        if success:
+            return True, "Cập nhật tài khoản thành công"
+        else:
+            return False, "Không thể cập nhật tài khoản" 

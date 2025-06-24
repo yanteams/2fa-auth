@@ -1,8 +1,12 @@
 import sys
 import os
+import warnings
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 from views.main_view import TwoFAView
+
+# Ẩn DeprecationWarning từ PyQt5
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="PyQt5")
 
 # Thêm thư mục gốc vào path để import các module
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
