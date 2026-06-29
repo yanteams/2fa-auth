@@ -18,6 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def read_root():
+    return {"status": "ok", "message": "2FA API is running"}
+
+
 def get_db_connection():
     try:
         # We can use DATABASE_URL or the DB_* variables
