@@ -49,7 +49,7 @@ class TwoFAModel:
             except:
                 pass
     
-    def add_account(self, name: str, secret_key: str, key_type: str = "TOTP") -> bool:
+    def add_account(self, name: str, secret_key: str, key_type: str = "TOTP", username: str = "", password: str = "") -> bool:
         """Thêm tài khoản mới"""
         try:
             # Kiểm tra secret key có hợp lệ không
@@ -61,6 +61,8 @@ class TwoFAModel:
             
             self.db.twofaaccount.create({
                 "name": name.strip(),
+                "username": username.strip() if username else None,
+                "password": password if password else None,
                 "secret_key": cleaned_key,
                 "key_type": key_type
             })
@@ -118,6 +120,8 @@ class TwoFAModel:
         return {
             "id": account.id,
             "name": account.name,
+            "username": account.username,
+            "password": account.password,
             "secret_key": account.secret_key,
             "key_type": account.key_type,
             "created_at": account.created_at.isoformat() if account.created_at else None,
@@ -141,6 +145,10 @@ class TwoFAModel:
             update_data = {}
             if "name" in data:
                 update_data["name"] = data["name"].strip()
+            if "username" in data:
+                update_data["username"] = data["username"].strip() if data["username"] else None
+            if "password" in data:
+                update_data["password"] = data["password"] if data["password"] else None
             if "key_type" in data:
                 update_data["key_type"] = data["key_type"]
             if "secret_key" in data and data["secret_key"].strip():

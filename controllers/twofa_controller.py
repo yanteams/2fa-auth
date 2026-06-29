@@ -12,7 +12,7 @@ class TwoFAController:
     def __init__(self):
         self.model = TwoFAModel()
     
-    def add_new_account(self, name: str, secret_key: str, key_type: str = "TOTP") -> Tuple[bool, str]:
+    def add_new_account(self, name: str, secret_key: str, key_type: str = "TOTP", username: str = "", password: str = "") -> Tuple[bool, str]:
         """Thêm tài khoản mới"""
         if not name.strip():
             return False, "Tên tài khoản không được để trống"
@@ -20,7 +20,7 @@ class TwoFAController:
         if not secret_key.strip():
             return False, "Khóa bí mật không được để trống"
         
-        success = self.model.add_account(name.strip(), secret_key.strip(), key_type)
+        success = self.model.add_account(name.strip(), secret_key.strip(), key_type, username, password)
         if success:
             return True, "Thêm tài khoản thành công"
         else:

@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "2FA Authenticator Pro",
+  "version": "1.0",
+  "description": "Quản lý mã 2FA nhanh chóng và tiện lợi",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Mở 2FA",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "permissions": [
+    "storage",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ]
+}

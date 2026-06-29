@@ -251,6 +251,19 @@ class EditAccountDialog(QDialog):
             self.name_input.setText(self.account_data.get("name", ""))
         form_layout.addRow("📱 Tên tài khoản:", self.name_input)
         
+        # Username
+        self.username_input = ModernLineEdit()
+        if self.account_data:
+            self.username_input.setText(self.account_data.get("username", "") or "")
+        form_layout.addRow("👤 Tên đăng nhập:", self.username_input)
+        
+        # Password
+        self.password_input = ModernLineEdit()
+        self.password_input.setEchoMode(QLineEdit.Password)
+        if self.account_data:
+            self.password_input.setText(self.account_data.get("password", "") or "")
+        form_layout.addRow("🔑 Mật khẩu:", self.password_input)
+        
         # Secret key
         self.secret_input = ModernLineEdit()
         self.secret_input.setEchoMode(QLineEdit.Password)
@@ -312,13 +325,19 @@ class EditAccountDialog(QDialog):
         """Chuyển đổi hiển thị/ẩn secret key"""
         if checked:
             self.secret_input.setEchoMode(QLineEdit.Normal)
+            if hasattr(self, 'password_input'):
+                self.password_input.setEchoMode(QLineEdit.Normal)
         else:
             self.secret_input.setEchoMode(QLineEdit.Password)
+            if hasattr(self, 'password_input'):
+                self.password_input.setEchoMode(QLineEdit.Password)
         
     def get_data(self):
         """Lấy dữ liệu từ form"""
         return {
             "name": self.name_input.text().strip(),
+            "username": self.username_input.text().strip() if hasattr(self, 'username_input') else "",
+            "password": self.password_input.text() if hasattr(self, 'password_input') else "",
             "secret_key": self.secret_input.text().strip(),
             "key_type": self.key_type_combo.currentText(),
             "note": self.note_input.toPlainText().strip()
@@ -533,28 +552,39 @@ class TwoFAView(QMainWindow):
         self.name_input = ModernLineEdit("Ví dụ: Gmail, Facebook, GitHub")
         form_layout.addWidget(self.name_input, 0, 1)
         
+        # Tên đăng nhập (Username)
+        form_layout.addWidget(QLabel("Tên đăng nhập:"), 1, 0)
+        self.username_input = ModernLineEdit("Ví dụ: user@gmail.com")
+        form_layout.addWidget(self.username_input, 1, 1)
+
+        # Mật khẩu (Password)
+        form_layout.addWidget(QLabel("Mật khẩu:"), 2, 0)
+        self.password_input = ModernLineEdit("Nhập mật khẩu")
+        self.password_input.setEchoMode(QLineEdit.Password)
+        form_layout.addWidget(self.password_input, 2, 1)
+        
         # Khóa bí mật
-        form_layout.addWidget(QLabel("Khóa bí mật:"), 1, 0)
+        form_layout.addWidget(QLabel("Khóa bí mật:"), 3, 0)
         self.secret_input = ModernLineEdit("Nhập secret key từ dịch vụ")
         self.secret_input.setEchoMode(QLineEdit.Password)
-        form_layout.addWidget(self.secret_input, 1, 1)
+        form_layout.addWidget(self.secret_input, 3, 1)
         
         # Checkbox hiển thị khóa
         self.show_secret_cb = QCheckBox("Hiển thị khóa")
         self.show_secret_cb.toggled.connect(self.toggle_secret_visibility)
-        form_layout.addWidget(self.show_secret_cb, 1, 2)
+        form_layout.addWidget(self.show_secret_cb, 3, 2)
         
         # Loại khóa
-        form_layout.addWidget(QLabel("Loại khóa:"), 2, 0)
+        form_layout.addWidget(QLabel("Loại khóa:"), 4, 0)
         self.key_type_combo = ModernComboBox()
         self.key_type_combo.addItems(["TOTP", "HOTP"])
-        form_layout.addWidget(self.key_type_combo, 2, 1)
+        form_layout.addWidget(self.key_type_combo, 4, 1)
         
         # Nút thêm
         add_button = ModernButton("➕ Thêm tài khoản", "#2196F3", "#1976D2")
         add_button.clicked.connect(self.add_account)
         add_button.setMinimumHeight(45)
-        form_layout.addWidget(add_button, 3, 0, 1, 3)
+        form_layout.addWidget(add_button, 5, 0, 1, 3)
         
         layout.addLayout(form_layout)
         
@@ -734,20 +764,22 @@ class TwoFAView(QMainWindow):
         """)
         
         # Thiết lập cột với thông tin chi tiết hơn
-        self.accounts_table.setColumnCount(7)
+        self.accounts_table.setColumnCount(8)
         self.accounts_table.setHorizontalHeaderLabels([
-            "📱 Tên tài khoản", "🔢 Mã", "⏱️ Thời gian", 
+            "📱 Tên tài khoản", "👤 Tên đăng nhập", "🔑 Mật khẩu", "🔢 Mã", "⏱️ Thời gian", 
             "🔐 Loại khóa", "📅 Ngày tạo", "⚡ Thao tác", ""
         ])
         
         # Cấu hình header
         header = self.accounts_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)  # Tên
-        header.setSectionResizeMode(1, QHeaderView.Fixed)    # Mã
-        header.setSectionResizeMode(2, QHeaderView.Fixed)    # Thời gian
-        header.setSectionResizeMode(3, QHeaderView.Fixed)    # Loại
-        header.setSectionResizeMode(4, QHeaderView.Fixed)    # Ngày tạo
-        header.setSectionResizeMode(5, QHeaderView.Fixed)    # Thao tác
+        header.setSectionResizeMode(1, QHeaderView.Stretch)  # Tên đăng nhập
+        header.setSectionResizeMode(2, QHeaderView.Fixed)    # Mật khẩu
+        header.setSectionResizeMode(3, QHeaderView.Fixed)    # Mã
+        header.setSectionResizeMode(4, QHeaderView.Fixed)    # Thời gian
+        header.setSectionResizeMode(5, QHeaderView.Fixed)    # Loại
+        header.setSectionResizeMode(6, QHeaderView.Fixed)    # Ngày tạo
+        header.setSectionResizeMode(7, QHeaderView.Fixed)    # Thao tác
         header.setSectionResizeMode(6, QHeaderView.Fixed)    # Ẩn
         
         self.accounts_table.setColumnWidth(1, 130)  # Mã
@@ -827,12 +859,16 @@ class TwoFAView(QMainWindow):
         name = self.name_input.text().strip()
         secret = self.secret_input.text().strip()
         key_type = self.key_type_combo.currentText()
+        username = self.username_input.text().strip() if hasattr(self, 'username_input') else ""
+        password = self.password_input.text() if hasattr(self, 'password_input') else ""
         
-        success, message = self.controller.add_new_account(name, secret, key_type)
+        success, message = self.controller.add_new_account(name, secret, key_type, username, password)
         
         if success:
             AutoCloseMessageBox("Thành công", message)
             self.name_input.clear()
+            if hasattr(self, 'username_input'): self.username_input.clear()
+            if hasattr(self, 'password_input'): self.password_input.clear()
             self.secret_input.clear()
             self.update_accounts_table()
         else:
@@ -904,6 +940,22 @@ class TwoFAView(QMainWindow):
             name_item.setForeground(QColor("#2c3e50"))
             self.accounts_table.setItem(row, 0, name_item)
             
+            # Username
+            username_item = QTableWidgetItem(account.get("username", "") or "")
+            username_item.setFlags(username_item.flags() & ~Qt.ItemIsEditable)
+            username_item.setForeground(QColor("#495057"))
+            self.accounts_table.setItem(row, 1, username_item)
+
+            # Password
+            pwd_text = "***" if account.get("password") else ""
+            pwd_item = QTableWidgetItem(pwd_text)
+            pwd_item.setFlags(pwd_item.flags() & ~Qt.ItemIsEditable)
+            pwd_item.setTextAlignment(Qt.AlignCenter)
+            pwd_item.setForeground(QColor("#6c757d"))
+            if account.get("password"):
+                pwd_item.setToolTip("Click chuột phải để copy mật khẩu")
+            self.accounts_table.setItem(row, 2, pwd_item)
+            
             # Mã 6 số với styling nổi bật
             code_item = QTableWidgetItem(account["current_code"])
             code_item.setFlags(code_item.flags() & ~Qt.ItemIsEditable)
@@ -915,7 +967,7 @@ class TwoFAView(QMainWindow):
             code_item.setFont(code_font)
             code_item.setForeground(QColor("#28a745"))
             code_item.setBackground(QColor("#f8fff9"))
-            self.accounts_table.setItem(row, 1, code_item)
+            self.accounts_table.setItem(row, 3, code_item)
             
             # Thời gian còn lại với màu sắc động
             remaining_time = account['remaining_time']
@@ -939,7 +991,7 @@ class TwoFAView(QMainWindow):
                 time_item.setForeground(QColor("#28a745"))  # Xanh
                 time_item.setBackground(QColor("#f8fff9"))
             
-            self.accounts_table.setItem(row, 2, time_item)
+            self.accounts_table.setItem(row, 4, time_item)
             
             # Loại khóa với badge styling
             type_item = QTableWidgetItem(account["key_type"])
@@ -956,7 +1008,7 @@ class TwoFAView(QMainWindow):
                 type_item.setForeground(QColor("#6f42c1"))
                 type_item.setBackground(QColor("#f8f5ff"))
             
-            self.accounts_table.setItem(row, 3, type_item)
+            self.accounts_table.setItem(row, 5, type_item)
             
             # Ngày tạo
             if account.get("created_at"):
@@ -975,7 +1027,7 @@ class TwoFAView(QMainWindow):
             date_item.setFlags(date_item.flags() & ~Qt.ItemIsEditable)
             date_item.setTextAlignment(Qt.AlignCenter)
             date_item.setForeground(QColor("#6c757d"))
-            self.accounts_table.setItem(row, 4, date_item)
+            self.accounts_table.setItem(row, 6, date_item)
             
             # Cột thao tác - hiển thị icon menu
             action_item = QTableWidgetItem("⚙️")
@@ -990,7 +1042,7 @@ class TwoFAView(QMainWindow):
             # Lưu account data vào item để sử dụng trong context menu
             action_item.setData(Qt.UserRole, account)
             
-            self.accounts_table.setItem(row, 5, action_item)
+            self.accounts_table.setItem(row, 7, action_item)
             
         except Exception as e:
             print(f"Lỗi khi populate row {row}: {e}")
@@ -1001,6 +1053,16 @@ class TwoFAView(QMainWindow):
             AutoCloseMessageBox("Thành công", "Đã copy mã vào clipboard")
         else:
             AutoCloseMessageBox("Lỗi", "Không thể copy mã", QMessageBox.Critical)
+            
+    def copy_password(self, password):
+        """Copy mật khẩu"""
+        if password:
+            import pyperclip
+            try:
+                pyperclip.copy(password)
+                AutoCloseMessageBox("Thành công", "Đã copy mật khẩu vào clipboard")
+            except Exception as e:
+                AutoCloseMessageBox("Lỗi", f"Không thể copy mật khẩu: {str(e)}", QMessageBox.Critical)
     
     def copy_key(self, secret_key):
         """Copy secret key"""
@@ -1189,6 +1251,11 @@ class TwoFAView(QMainWindow):
             copy_code_action = QAction("📋 Copy mã 6 số", self)
             copy_code_action.triggered.connect(lambda: self.copy_code(account["secret_key"]))
             context_menu.addAction(copy_code_action)
+            
+            if account.get("password"):
+                copy_pwd_action = QAction("🔑 Copy mật khẩu", self)
+                copy_pwd_action.triggered.connect(lambda: self.copy_password(account.get("password")))
+                context_menu.addAction(copy_pwd_action)
             
             copy_key_action = QAction("🔑 Copy secret key", self)
             copy_key_action.triggered.connect(lambda: self.copy_key(account["secret_key"]))

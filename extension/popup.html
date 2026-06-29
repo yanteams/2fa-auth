@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2FA Authenticator</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span class="shield-icon">🛡️</span> 2FA Auth Pro</h1>
+      <div class="actions">
+        <button id="addBtn" class="icon-btn" title="Thêm tài khoản">➕</button>
+      </div>
+    </header>
+    
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Tìm kiếm tài khoản...">
+      <span class="search-icon">🔍</span>
+    </div>
+
+    <div class="progress-container">
+      <div id="progress-bar" class="progress-bar"></div>
+    </div>
+    
+    <div id="accountsList" class="accounts-list">
+      <!-- Accounts will be injected here -->
+      <div class="loading">Đang tải dữ liệu...</div>
+    </div>
+
+    <!-- Add Account Modal -->
+    <div id="addModal" class="modal hidden">
+      <div class="modal-content">
+        <h2>Thêm tài khoản mới</h2>
+        <form id="addForm">
+          <div class="form-group">
+            <label>Tên dịch vụ</label>
+            <input type="text" id="addName" required placeholder="VD: Google, Github">
+          </div>
+          <div class="form-group">
+            <label>Tên đăng nhập (Username)</label>
+            <input type="text" id="addUsername" placeholder="VD: user@email.com">
+          </div>
+          <div class="form-group">
+            <label>Mật khẩu</label>
+            <input type="password" id="addPassword" placeholder="Nhập mật khẩu">
+          </div>
+          <div class="form-group">
+            <label>Khóa bí mật (Secret Key)</label>
+            <input type="password" id="addSecret" required placeholder="Nhập secret key">
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn cancel-btn" id="cancelAddBtn">Hủy</button>
+            <button type="submit" class="btn submit-btn">Lưu</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script src="totp.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
