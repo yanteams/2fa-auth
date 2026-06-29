@@ -1,3 +1,4 @@
+const API_URL = 'https://2fa-auth-production-159d.up.railway.app/api/accounts';
 let accounts = [];
 
 // DOM Elements
@@ -15,17 +16,16 @@ async function init() {
   setInterval(updateUI, 1000);
 }
 
-// Fetch from Local Storage
+// Fetch from API
 async function fetchAccounts() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['twofa_accounts'], (result) => {
-      accounts = result.twofa_accounts || [];
-      // Sort by newest first
-      accounts.sort((a, b) => b.created_at - a.created_at);
-      renderAccounts();
-      resolve();
-    });
-  });
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error("API Error");
+    accounts = await res.json();
+    renderAccounts();
+  } catch (error) {
+    accountsList.innerHTML = `<div class="loading" style="color: var(--danger-color)">Không thể kết nối đến Backend trên Railway. Vui lòng kiểm tra lại link hoặc server.</div>`;
+  }
 }
 
 // Render Accounts
@@ -37,7 +37,7 @@ async function renderAccounts() {
   );
 
   if (filtered.length === 0) {
-    accountsList.innerHTML = `<div class="loading">Chưa có tài khoản nào. Bấm ➕ để thêm mới.</div>`;
+    accountsList.innerHTML = `<div class="loading">Không tìm thấy tài khoản nào. Bấm ➕ để thêm mới.</div>`;
     return;
   }
 
@@ -99,11 +99,12 @@ async function copyToClipboard(text, type) {
 // Delete Account
 window.deleteAccount = async (id) => {
   if (!confirm("Bạn có chắc chắn muốn xoá tài khoản này?")) return;
-  
-  const updatedAccounts = accounts.filter(acc => acc.id !== id);
-  chrome.storage.local.set({ twofa_accounts: updatedAccounts }, () => {
-    fetchAccounts();
-  });
+  try {
+    await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+    await fetchAccounts();
+  } catch (err) {
+    alert("Xoá thất bại!");
+  }
 };
 
 // Events
@@ -120,23 +121,31 @@ cancelAddBtn.addEventListener('click', () => {
 
 addForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  
   const newAcc = {
-    id: Date.now(), // Unique ID based on timestamp
     name: document.getElementById('addName').value.trim(),
     username: document.getElementById('addUsername').value.trim() || null,
     password: document.getElementById('addPassword').value || null,
-    secret_key: document.getElementById('addSecret').value.replace(/\\s|-|:/g, ''),
-    key_type: "TOTP",
-    created_at: Date.now()
+    secret_key: document.getElementById('addSecret').value.replace(/\s|-|:/g, ''),
+    key_type: "TOTP"
   };
 
-  accounts.push(newAcc);
-  chrome.storage.local.set({ twofa_accounts: accounts }, () => {
-    addModal.classList.add('hidden');
-    addForm.reset();
-    fetchAccounts();
-  });
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newAcc)
+    });
+    if (res.ok) {
+      addModal.classList.add('hidden');
+      addForm.reset();
+      await fetchAccounts();
+    } else {
+      const err = await res.json();
+      alert("Lỗi: " + JSON.stringify(err));
+    }
+  } catch (err) {
+    alert("Lỗi kết nối Backend.");
+  }
 });
 
 // Start

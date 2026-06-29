@@ -18,6 +18,7 @@
   ],
   "host_permissions": [
     "http://localhost:8000/*",
-    "http://127.0.0.1:8000/*"
+    "http://127.0.0.1:8000/*",
+    "https://2fa-auth-production-159d.up.railway.app/*"
   ]
 }
