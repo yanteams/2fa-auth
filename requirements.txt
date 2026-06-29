@@ -3,4 +3,7 @@ prisma==0.11.0
 pyotp==2.9.0
 pyperclip==1.8.2
 python-dotenv==1.0.0
-psycopg2-binary==2.9.7 
+psycopg2-binary==2.9.7
+fastapi
+uvicorn
+pydantic 
